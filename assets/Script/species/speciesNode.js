@@ -23,7 +23,6 @@ cc.Class({
       default: [],
       type: cc.SpriteFrame,
     },
-    labelContent: 'none',
   },
 
   // LIFE-CYCLE CALLBACKS:
@@ -42,7 +41,13 @@ cc.Class({
     eventCustom.setUserData({
       species: this.labelContent,
     });
-    this.node.dispatchEvent(eventCustom);
+    this.scheduleOnce(() => {
+      this.node.dispatchEvent(eventCustom);
+    }, 1);
+  },
+
+  command() {
+
   },
 
   updateData() {
