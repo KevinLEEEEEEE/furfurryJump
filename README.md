@@ -1,2 +1,2 @@
-# hello-world
-Hello world new project template.
+# furfurryJump
+A javascript based furry wechat game!
