@@ -1,3 +1,102 @@
+import newBehaviorTree from './SM&BT/behaviorTree';
+import { btNode as $ } from './config/btNode';
+
+const bt = newBehaviorTree({
+  structure: [
+    [
+      { name: 'root', type: $.SELECTOR, parent: null },
+    ],
+    [
+      { name: 'goToCourt', type: $.SEQUENCE, parent: 'root' },
+      { name: 'goDataing', type: $.SELECTOR, parent: 'root' },
+    ],
+    [
+      { name: 'isValentinesDay', type: $.CONDITION, parent: 'goToCourt' },
+      { name: 'toGoToCourt', type: $.ACTION, parent: 'goToCourt' },
+      { name: 'toPlayBasketball', type: $.ACTION, parent: 'goToCourt' },
+      { name: 'buyFlower', type: $.SELECTOR, parent: 'goDataing' },
+      { name: 'meetGirlFriend', type: $.SEQUENCE, parent: 'goDataing' },
+    ],
+    [
+      { name: 'goHomeAndDrawMoney', type: $.SEQUENCE, parent: 'buyFlower' },
+      { name: 'goFlowerShopAndBuy', type: $.SEQUENCE, parent: 'buyFlower' },
+      { name: 'toFindGirlFriend', type: $.ACTION, parent: 'meetGirlFriend' },
+      { name: 'isGirlFriendStillThere', type: $.CONDITION, parent: 'meetGirlFriend' },
+      { name: 'isGirlFriendHasNoFlower', type: $.CONDITION, parent: 'meetGirlFriend' },
+      { name: 'toSendFlower', type: $.ACTION, parent: 'meetGirlFriend' },
+    ],
+    [
+      { name: 'isGirlFriendHasNoFlower', type: $.CONDITION, parent: 'goHomeAndDrawMoney' },
+      { name: 'isMyselfHasNoFlower', type: $.CONDITION, parent: 'goHomeAndDrawMoney' },
+      { name: 'isMySelfHasNoMoney', type: $.CONDITION, parent: 'goHomeAndDrawMoney' },
+      { name: 'toGoHome', type: $.ACTION, parent: 'goHomeAndDrawMoney' },
+      { name: 'toDrawMoney', type: $.ACTION, parent: 'goHomeAndDrawMoney' },
+      { name: 'isGirlFriendHasNoFlower', type: $.CONDITION, parent: 'goFlowerShopAndBuy' },
+      { name: 'isMyselfHasNoFlower', type: $.CONDITION, parent: 'goFlowerShopAndBuy' },
+      { name: 'toWalkToFlowerShop', type: $.ACTION, parent: 'goFlowerShopAndBuy' },
+      { name: 'toBuyFlowers', type: $.ACTION, parent: 'goFlowerShopAndBuy' },
+    ],
+  ],
+  knowledge: {
+    isValentinesDay: false,
+    isGirlFriendHasNoFlower: false,
+    isMyselfHasNoFlower: false,
+    isMySelfHasNoMoney: false,
+    isGirlFriendStillThere: false,
+  },
+  condition: {
+    isValentinesDay() {
+      return !this.knowledge.isValentinesDay;
+    },
+    isGirlFriendHasNoFlower() {
+      return this.knowledge.isGirlFriendHasNoFlower;
+    },
+    isMyselfHasNoFlower() {
+      return this.knowledge.isMyselfHasNoFlower;
+    },
+    isMySelfHasNoMoney() {
+      return this.knowledge.isMySelfHasNoMoney;
+    },
+    isGirlFriendStillThere() {
+      return this.knowledge.isGirlFriendStillThere;
+    },
+  },
+  action: {
+    toGoToCourt() {
+      console.log('GoToCourt');
+      return true;
+    },
+    toPlayBasketball() {
+      console.log('PlayBasketball');
+      return true;
+    },
+    toGoHome() {
+      console.log('GoHome');
+      return true;
+    },
+    toDrawMoney() {
+      console.log('DrawMoney');
+      return true;
+    },
+    toWalkToFlowerShop() {
+      console.log('WalkToFlowerShop');
+      return true;
+    },
+    toBuyFlowers() {
+      console.log('BuyFlowers');
+      return true;
+    },
+    toFindGirlFriend() {
+      console.log('FindGirlFriend');
+      return true;
+    },
+    toSendFlower() {
+      console.log('SendFlower');
+      return true;
+    },
+  },
+});
+
 
 cc.Class({
   extends: cc.Component,
@@ -10,41 +109,19 @@ cc.Class({
 
   onLoad() {
     this.node.on('mousedown', this.click, this);
+    console.log(bt);
+    bt.run();
+  },
+
+  init(config) {
+    this.config = config;
+    console.log(config);
   },
 
   click() {
-    const eventCustom = new cc.Event.EventCustom('individualReport', true);
-    eventCustom.setUserData({
-      ID: this.number,
-      event: 'click',
+    this.node.emit('iEmergencyReq', {
+      type: 'attack',
     });
-    this.node.dispatchEvent(eventCustom);
-    this.blackboard[this.number].clickNumber += 1;
   },
 
-  init(blackboard, number) {
-    this.blackboard = blackboard;
-    this.number = number;
-    const mates = this.mates();
-    this.blackboard.subscribe(mates);
-    this.blackboard[number] = {
-      clickNumber: 0,
-    };
-  },
-
-  command(order) {
-    console.log(`receive order from commander: ${order.ID} - ${order.event}`);
-  },
-
-  mates() {
-    const that = this;
-    return (key, message) => {
-      console.log(`receive order from mates: ${message}`);
-      that.command({
-        ID: key,
-        event: message,
-      });
-    };
-  },
-  // update (dt) {},
 });

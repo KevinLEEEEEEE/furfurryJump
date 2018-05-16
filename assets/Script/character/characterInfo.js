@@ -11,10 +11,10 @@ cc.Class({
       default: test.nei,
       type: test,
     },
-    check: {
-      default: false,
-      type: cc.CheckBox,
-    },
+    // check: {
+    //   default: false,
+    //   type: cc.CheckBox,
+    // },
     menu: {
       default: null,
       type: cc.Prefab,
