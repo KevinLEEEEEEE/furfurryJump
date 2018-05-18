@@ -38,11 +38,11 @@ const bt = newBehaviorTree({
     ],
   ],
   knowledge: {
-    isValentinesDay: false,
-    isGirlFriendHasNoFlower: false,
+    isValentinesDay: true,
+    isGirlFriendHasNoFlower: true,
     isMyselfHasNoFlower: false,
     isMySelfHasNoMoney: false,
-    isGirlFriendStillThere: false,
+    isGirlFriendStillThere: true,
   },
   condition: {
     isValentinesDay() {

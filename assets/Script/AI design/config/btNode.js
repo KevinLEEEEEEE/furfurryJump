@@ -7,10 +7,8 @@ const btNode = {
 };
 
 const btState = {
-  WAIT: 0,
-  RUNNING: 1,
-  SUCCESS: 2,
-  FAILED: 3,
+  RUNNING: 0,
+  COMPLETED: 1,
 };
 
 export { btNode, btState };

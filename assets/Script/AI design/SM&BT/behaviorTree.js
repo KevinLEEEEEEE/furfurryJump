@@ -35,15 +35,13 @@ const _btNodeProperty = new Map()
   .set($.CONDITION, {
     run() {
       const { name } = { name: this.name };
-      console.log(this.origin.condition[name]());
-      // return (this.origin.condition[name])();
+      return this.origin.condition[name]();
     },
   })
   .set($.ACTION, {
     run() {
-      // const { name } = { name: this.name };
-      // return (this.origin.action[name])();
-      return true;
+      const { name } = { name: this.name };
+      return this.origin.action[name]();
     },
   });
 
@@ -52,13 +50,6 @@ const _behaviorTree = {
     return Reflect.has(item, 'name') &&
             Reflect.has(item, 'type') &&
             Reflect.has(item, 'parent');
-  },
-  getFormatObj() {
-    const obj = {};
-    Object.keys($).forEach((key) => {
-      obj[$[key]] = [];
-    }); // set format based on the defination of btNode
-    return obj;
   },
   getStructure(template, origin) {
     let root = null;
@@ -73,10 +64,9 @@ const _behaviorTree = {
         const { name, type, parent } = { name: item.name, type: item.type, parent: item.parent };
         const nodePrototype = _btNodeProperty.get(type); // get prototype 'run' based of its type
         const node = Object.create(nodePrototype);
-        // const formatObj = this.getFormatObj();
         node.name = name; // important! save the name as the name of k, c and m
         node.type = type; // save its type for further use(no use recently)
-        node.state = $$.WAIT; // init the default state of the node
+        node.state = $$.COMPLETED; // init the default state of the node
         node.origin = origin; // preserve 'this' of all knowledge , condition and methods
         node.children = []; // set children for further call
         if (Reflect.has(parents, parent)) {
@@ -101,7 +91,7 @@ const _behaviorTree = {
 
 const behaviorTreePrototype = {
   update() {
-    // to update the knowledge before
+    // to update the knowledge ,using a formated object
   },
   run() {
     this.structure.run(); // to run the behaviour tree
@@ -109,6 +99,10 @@ const behaviorTreePrototype = {
 };
 
 export default function newBehaviorTree(bt) {
+  if (bt === null || typeof bt !== 'object') {
+    throw new Error('Please use a formated object as the init object');
+  }
+
   const BT = Object.create(behaviorTreePrototype);
 
   try {
@@ -116,23 +110,26 @@ export default function newBehaviorTree(bt) {
       switch (key) {
         case 'structure': {
           const structure = _behaviorTree.getStructure(bt.structure, BT);
-          BT[key] = Object.freeze(structure);
+          Object.freeze(structure); // set the tree structed object as new structure
+          BT[key] = structure;
           break;
         }
         case 'knowledge': {
-          BT[key] = bt[key];
+          Object.seal(bt[key]); // ensure the original properties can't be deleted or added
+          BT[key] = bt[key]; // but the data can still be changed
           break;
         }
         case 'condition':
         case 'action': {
           BT[key] = {};
           Object.keys(bt[key]).forEach((childKey) => {
-            BT[key][childKey] = bt[key][childKey].bind(BT);
+            BT[key][childKey] = bt[key][childKey].bind(BT); // make sure each node can get the knowledge
           });
+          Object.freeze(BT[key]); // the methods and not be changed since inited
           break;
         }
         default: {
-          throw new Error(`the key: ${key} is not the default propertiy of BT`);
+          throw new Error(`the key: ${key} is not the required property of BT`);
         }
       }
     });
