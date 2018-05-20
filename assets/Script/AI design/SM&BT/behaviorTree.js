@@ -35,13 +35,13 @@ const _btNodeProperty = new Map()
   .set($.CONDITION, {
     run() {
       const { name } = { name: this.name };
-      return this.origin.condition[name]();
+      return (this.origin.condition[name])();
     },
   })
   .set($.ACTION, {
     run() {
       const { name } = { name: this.name };
-      return this.origin.action[name]();
+      return (this.origin.action[name])();
     },
   });
 
@@ -123,7 +123,8 @@ export default function newBehaviorTree(bt) {
         case 'action': {
           BT[key] = {};
           Object.keys(bt[key]).forEach((childKey) => {
-            BT[key][childKey] = bt[key][childKey].bind(BT); // make sure each node can get the knowledge
+            BT[key][childKey] = bt[key][childKey].bind(BT);
+            // make sure each node can get the knowledge
           });
           Object.freeze(BT[key]); // the methods and not be changed since inited
           break;
