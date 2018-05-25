@@ -1,8 +1,7 @@
-import errorHandler from './errorHandler';
 import { btNode as $, btState as $$ } from '../config/btNode';
 
-const _btNodeProperty = new Map()
-  .set($.SELECTOR, {
+const btNodeProperty = {
+  [$.SELECTOR]: {
     run() {
       for (let i = 0; i < this.children.length; i += 1) {
         if (this.children[i].run()) {
@@ -11,8 +10,8 @@ const _btNodeProperty = new Map()
       }
       return false;
     },
-  })
-  .set($.SEQUENCE, {
+  },
+  [$.SEQUENCE]: {
     run() {
       for (let i = 0; i < this.children.length; i += 1) {
         if (!this.children[i].run()) {
@@ -21,8 +20,8 @@ const _btNodeProperty = new Map()
       }
       return true;
     },
-  })
-  .set($.PARALLEL, {
+  },
+  [$.PARALLEL]: {
     run() {
       const methods = this.children;
       let result = true;
@@ -31,43 +30,38 @@ const _btNodeProperty = new Map()
       });
       return result;
     },
-  })
-  .set($.CONDITION, {
-    run() {
-      const { name } = { name: this.name };
-      return (this.origin.condition[name])();
-    },
-  })
-  .set($.ACTION, {
-    run() {
-      const { name } = { name: this.name };
-      return (this.origin.action[name])();
-    },
-  });
+  },
+};
 
 const _behaviorTree = {
-  formatDetect(item) {
-    return Reflect.has(item, 'name') &&
-            Reflect.has(item, 'type') &&
-            Reflect.has(item, 'parent');
+  getNodePrototype(name, type, BT, bt, that) {
+    switch (type) {
+      case $.SELECTOR:
+      case $.SEQUENCE:
+      case $.PARALLEL:
+        return btNodeProperty[type];
+      case $.CONDITION:
+        return { run: bt.condition[name].bind(BT) };
+      case $.ACTION:
+        return { run: bt.action[name].bind(that) };
+      default:
+    }
+    return false;
   },
-  getStructure(template, origin) {
+  getStructure(BT, bt, that) {
     let root = null;
     let parents = {};
     let children = {};
 
-    template.forEach((items, i) => {
+    bt.structure.forEach((items, i) => {
       items.forEach((item, j) => {
-        if (!this.formatDetect(item)) { // the item doesn't match the 'name' 'type' 'parent' format
-          throw new Error(`Error with format of ${item}`);
-        }
-        const { name, type, parent } = { name: item.name, type: item.type, parent: item.parent };
-        const nodePrototype = _btNodeProperty.get(type); // get prototype 'run' based of its type
-        const node = Object.create(nodePrototype);
+        const node = {};
+        const { name, type, parent } = item;
+        const prototype = this.getNodePrototype(name, type, BT, bt, that);
+        Reflect.setPrototypeOf(node, prototype);
         node.name = name; // important! save the name as the name of k, c and m
         node.type = type; // save its type for further use(no use recently)
         node.state = $$.COMPLETED; // init the default state of the node
-        node.origin = origin; // preserve 'this' of all knowledge , condition and methods
         node.children = []; // set children for further call
         if (Reflect.has(parents, parent)) {
           parents[parent].children.push(node); // become child of parent
@@ -90,7 +84,8 @@ const _behaviorTree = {
 };
 
 const behaviorTreePrototype = {
-  update() {
+  update(knowledge) {
+    console.log(knowledge);
     // to update the knowledge ,using a formated object
   },
   run() {
@@ -98,45 +93,38 @@ const behaviorTreePrototype = {
   },
 };
 
-export default function newBehaviorTree(bt) {
-  if (bt === null || typeof bt !== 'object') {
-    throw new Error('Please use a formated object as the init object');
-  }
-
+export default function newBehaviorTree(bt, that) {
   const BT = Object.create(behaviorTreePrototype);
 
-  try {
-    Object.keys(bt).forEach((key) => {
-      switch (key) {
-        case 'structure': {
-          const structure = _behaviorTree.getStructure(bt.structure, BT);
-          Object.freeze(structure); // set the tree structed object as new structure
-          BT[key] = structure;
-          break;
-        }
-        case 'knowledge': {
-          Object.seal(bt[key]); // ensure the original properties can't be deleted or added
-          BT[key] = bt[key]; // but the data can still be changed
-          break;
-        }
-        case 'condition':
-        case 'action': {
-          BT[key] = {};
-          Object.keys(bt[key]).forEach((childKey) => {
-            BT[key][childKey] = bt[key][childKey].bind(BT);
-            // make sure each node can get the knowledge
-          });
-          Object.freeze(BT[key]); // the methods and not be changed since inited
-          break;
-        }
-        default: {
-          throw new Error(`the key: ${key} is not the required property of BT`);
-        }
+  Object.keys(bt).forEach((key) => {
+    switch (key) {
+      case 'structure': {
+        const structure = _behaviorTree.getStructure(BT, bt, that);
+        Object.freeze(structure); // set the tree structed object as new structure
+        BT[key] = structure;
+        break;
       }
-    });
-  } catch (error) {
-    errorHandler.console(error);
-  }
+      case 'knowledge': {
+        Object.seal(bt[key]); // ensure the original properties can't be deleted or added
+        BT[key] = bt[key]; // but the data can still be changed
+        break;
+      }
+      case 'condition':
+      case 'action': {
+        break;
+      }
+      default: {
+        throw new Error(`the key: ${key} is not the required property of BT`);
+      }
+    }
+  });
 
-  return BT;
+  return (knowledge, run) => {
+    if (knowledge !== null && typeof knowledge === 'object') {
+      BT.update(knowledge);
+    }
+    if (run) {
+      BT.run();
+    }
+  };
 }

@@ -1,7 +1,7 @@
 import newBehaviorTree from './SM&BT/behaviorTree';
 import { btNode as $ } from './config/btNode';
 
-const bt = newBehaviorTree({
+const bt = {
   structure: [
     [
       { name: 'root', type: $.SELECTOR, parent: null },
@@ -92,10 +92,11 @@ const bt = newBehaviorTree({
     },
     toSendFlower() {
       console.log('SendFlower');
+      this.say();
       return true;
     },
   },
-});
+};
 
 
 cc.Class({
@@ -109,8 +110,8 @@ cc.Class({
 
   onLoad() {
     this.node.on('mousedown', this.click, this);
-    console.log(bt);
-    bt.run();
+    this.behaviorTree = newBehaviorTree(bt, this);
+    this.behaviorTree(null, true);
   },
 
   init(config) {
@@ -122,6 +123,11 @@ cc.Class({
     this.node.emit('iEmergencyReq', {
       type: 'attack',
     });
+  },
+
+  say() {
+    this.test = 2;
+    console.log(this.test);
   },
 
 });

@@ -6,6 +6,8 @@
     "linebreak-style": "off"
   },
   "globals": {
-      "cc": true
+      "cc": true,
+      "describe": true,
+      "it": true
   }
 }
