@@ -1,4 +1,5 @@
 import newBehaviorTree from './SM&BT/behaviorTree';
+import stateMachine from './SM&BT/stateMachine';
 import { btNode as $ } from './config/btNode';
 
 const bt = {
@@ -98,6 +99,25 @@ const bt = {
   },
 };
 
+const sm = {
+  init: 'solid',
+  transitions: [
+    { name: 'melt', from: 'solid', to: 'liquid' },
+    { name: 'freeze', from: 'liquid', to: 'solid' },
+    { name: 'vaporize', from: 'liquid', to: 'gas' },
+    { name: 'condense', from: 'gas', to: 'liquid' },
+  ],
+  methods: {
+    onBeforeMelt() { console.log('onBeforeMelt'); },
+    onLeaveSolid() { console.log('onLeaveSolid'); },
+    onMelt() { this.say(); },
+    onEnterLiquid() { console.log('onEnterLiquid'); },
+    onAfterMelt() { console.log('onAfterMelt'); },
+    onFreeze() { console.log('I froze'); },
+    onVaporize() { console.log('I vaporized'); },
+    onCondense() { console.log('I condensed'); },
+  },
+};
 
 cc.Class({
   extends: cc.Component,
@@ -110,8 +130,11 @@ cc.Class({
 
   onLoad() {
     this.node.on('mousedown', this.click, this);
-    this.behaviorTree = newBehaviorTree(bt, this);
-    this.behaviorTree(null, true);
+    // this.behaviorTree = newBehaviorTree(bt, this);
+    // this.behaviorTree(null, true);
+    this.stateMachine = stateMachine(sm, this);
+    this.stateMachine.melt();
+    console.log(this.stateMachine.state);
   },
 
   init(config) {
@@ -128,6 +151,7 @@ cc.Class({
   say() {
     this.test = 2;
     console.log(this.test);
+    cc.log('onMelt');
   },
 
 });
