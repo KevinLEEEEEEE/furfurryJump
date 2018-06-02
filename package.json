@@ -4,7 +4,7 @@
   "description": "a furry game",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --compilers js:babel-register",
+    "test": "mocha --compilers js:babel-register --recursive",
     "lint": "eslint **/*.js",
     "lint-html": "eslint **/*.js -f html -o ./reports/lint-results.html",
     "lint-fix": "eslint --fix **/*.js"
