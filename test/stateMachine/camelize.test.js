@@ -1,4 +1,4 @@
-import camelize from '../../assets/Script/AI design/SM&BT/camelize';
+import camelize from '../../assets/Script/AI design/SM&BT//stateMachine/util/camelize';
 
 const assert = require('assert');
 

@@ -1,9 +1,9 @@
-import camelize from '../SM&BT/camelize';
+import camelize from './util/camelize';
 import { smState as $ } from './config';
 
 //--------------------------------------------------------------------------
 
-const _statesProp = {
+const statesProp = {
   canState(state) {
     return Reflect.has(this.states, state);
   },
@@ -41,8 +41,6 @@ const _stateMachine = {
     }
     return 'none'; // else use 'none' as default state
   },
-
-  //------------------------------------------------------------------------
 
   getMethods(sm, that) {
     if (!Reflect.has(sm, 'methods')) {
@@ -100,61 +98,57 @@ const _stateMachine = {
     }
     const states = sm.transitions;
     const tmp = {};
-    const define = (target, name, to) => {
-      const arrayTos = to instanceof Array ? to : [to];
-      const local = target;
-      if (!Reflect.has(target.transition, name)) {
-        local.transitions[name] = [];
+    const define = (target, prop, key, value) => {
+      if (!Reflect.has(target, prop)) {
+        target[prop] = {};
       }
-      local.transitions[name] += arrayTos;
-      arrayTos.forEach((arrayTo) => {
-        if (!Reflect.has(target.states, arrayTo)) {
-          local.states[arrayTo] = [];
-        }
-        local.states[arrayTo] += [name];
-      });
+      if (key !== undefined && value !== undefined) {
+        target[prop][key] = value;
+      }
+    };
+    const statesLifeCycle = (target, context) => {
+      this.getLifeCycle(['onEnter', 'onLeave'], target, context, methods);
+      // states have 'onEnter' and 'onLeave' lifeCycle methods
     };
 
     states.forEach((state) => {
-      const { name, from, to } = state;
+      const { name, from: rawFrom, to } = state;
+      const froms = rawFrom instanceof Array ? rawFrom : [rawFrom];
 
-      if (Reflect.has(tmp, from)) {
-        const target = tmp[from];
-        // target.transitions[name] = to;
-        // target.states[to] = name;
-        define(target, name, to);
-      } else {
-        tmp[from] = Object.create(_statesProp);
-        const target = tmp[from];
+      froms.forEach((from) => {
+        if (Reflect.has(tmp, from)) {
+          const target = tmp[from];
+          define(target, 'transitions', name, to);
+          define(target, 'states', to, name);
+        } else {
+          tmp[from] = Object.create(statesProp);
+          const target = tmp[from];
 
-        /**
-         * brief description
-         *
-         * @param name the name of transitions
-         * @param from the state before transition
-         * @param to the state after transition
-         *
-         * init transition and state here,
-         * property can be defined on 'from' part
-         */
+          /**
+           * brief description
+           *
+           * @param name the name of transitions
+           * @param from the state before transition
+           * @param to the state after transition
+           *
+           * init transition and state here,
+           * property can be defined on 'from' part
+           */
 
-        target.transitions = {};
-        target.states = {};
-        define(target, name, to);
-        // target.transitions[name] = to;
-        // target.states[to] = name;
-        if (!Reflect.has(target, 'lifeCycle')) {
-          this.getStatesLifeCycle(target, from, methods);
+          define(target, 'transitions', name, to);
+          define(target, 'states', to, name);
+
+          statesLifeCycle(target, from);
         }
-      }
+      });
       if (!Reflect.has(tmp, to)) {
-        tmp[to] = Object.create(_statesProp);
+        tmp[to] = Object.create(statesProp);
         const target = tmp[to];
-        target.transitions = {};
-        target.states = {};
-        if (!Reflect.has(target, 'lifeCycle')) {
-          this.getStatesLifeCycle(target, to, methods);
-        }
+
+        define(target, 'transitions');
+        define(target, 'states');
+
+        statesLifeCycle(target, to);
       }
     });
 
@@ -163,29 +157,22 @@ const _stateMachine = {
   getTransitions(sm, methods) {
     const { transitions } = sm;
     const tmp = {};
+    const transitionsLifeCycle = (target, context) => {
+      this.getLifeCycle(['on', 'onBefore', 'onAfter'], target, context, methods);
+      // states have 'on' and 'onBefore' and 'onAfter' lifeCycle methods
+    };
 
     transitions.forEach((transition) => {
       const { name } = transition;
-
       if (!Reflect.has(tmp, name)) {
         tmp[name] = {};
-        this.getTransitionsLifeCycle(tmp[name], name, methods);
+        transitionsLifeCycle(tmp[name], name);
       }
     });
 
     return tmp;
   },
 
-  //------------------------------------------------------------------------
-
-  getStatesLifeCycle(target, context, methods) {
-    this.getLifeCycle(['onEnter', 'onLeave'], target, context, methods);
-    // states have 'onEnter' and 'onLeave' lifeCycle methods
-  },
-  getTransitionsLifeCycle(target, context, methods) {
-    this.getLifeCycle(['on', 'onBefore', 'onAfter'], target, context, methods);
-    // states have 'on' and 'onBefore' and 'onAfter' lifeCycle methods
-  },
   getLifeCycle(array, target, context, methods) {
     Reflect.defineProperty(target, 'lifeCycle', {
       value: {},
@@ -217,16 +204,24 @@ const stateMachineProp = {
     return current === state;
   },
   canState(state) {
-    return this._isFree() ? this._getTarget().canState(state) : false;
+    if (this._isFree()) {
+      if (this._getTarget().canState(state)) {
+        return true;
+      }
+      return Reflect.has(this._fsm.states, '*') && Reflect.has(this._fsm.states['*'], state);
+    }
+    return false;
   },
   canTransition(transition) {
     return this._isFree() ? this._getTarget().canTransition(transition) : false;
   },
   states() {
-    return this._getTarget().getStates();
+    const starResult = Reflect.has(this._fsm.states, '*') ? this._fsm.states['*'].getStates() : [];
+    return (this._getTarget().getStates()).concat(starResult);
   },
   transitions() {
-    return this._getTarget().getTransitions();
+    const starResult = Reflect.has(this._fsm.states, '*') ? this._fsm.states['*'].getTransitions() : [];
+    return (this._getTarget().getTransitions()).concat(starResult);
   },
   allStates() {
     return Object.keys(this._fsm.states);
@@ -256,16 +251,26 @@ const stateMachineProp = {
   },
   _run(transition, that, rest) {
     const fsm = this._fsm;
+    const starDetect = () => {
+      if (Reflect.has(fsm.states, '*')) {
+        return Reflect.has(fsm.states['*'].transitions, transition);
+      }
+      return false;
+    };
+
     if (fsm.runningState !== $.FREE) {
       throw new Error('Transition is invalid while previous transition is still in progress');
     }
 
     const target = that || this._getTarget(); // from goto or stateMachine proxy
-    if (that || target.canTransition(transition)) { // canStates() in  goto has ensured
+    const starDetectResult = starDetect();
+    if (that || target.canTransition(transition) || starDetectResult) {
       fsm.runningState = $.RUNNING;
 
       const transitionLifeCycle = fsm.transitions[transition].lifeCycle;
-      const enterState = target.transitions[transition];
+      const enterState = starDetectResult ?
+        fsm.states['*'].transitions[transition] :
+        target.transitions[transition];
       const enter = fsm.states[enterState].lifeCycle;
       const leave = target.lifeCycle;
       const args = rest || undefined;
@@ -316,6 +321,7 @@ export default function (sm, that) {
   const methods = _stateMachine.getMethods(sm, that || sm); // bind self without that
   const states = _stateMachine.getStates(sm, methods);
   const transitions = _stateMachine.getTransitions(sm, methods);
+
   stateMachine._fsm = {
     state: init,
     states,
@@ -340,6 +346,9 @@ export default function (sm, that) {
         return target[property]; // public property 'state' and private prop _fsm
       }
       return () => target._run(property); // change state by calling the transition's name
+    },
+    set() {
+      throw new Error('Cannot set custom properties on stateMachine directly');
     },
   });
 }

@@ -1,4 +1,4 @@
-import stateMachine from '../../assets/Script/AI design/SM&BT/stateMachine';
+import stateMachine from '../../assets/Script/AI design/SM&BT/stateMachine/stateMachine';
 
 const assert = require('assert');
 
