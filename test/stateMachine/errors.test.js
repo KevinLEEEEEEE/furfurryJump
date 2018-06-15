@@ -23,7 +23,7 @@ describe('stateMachine_errors', () => {
     assert.equal(fsm.state, 'none');
     assert.throws(() => {
       fsm.state = 'other';
-    }, /State cannot be modified directly$/);
+    }, /Cannot set custom properties on stateMachine directly$/);
     assert.equal(fsm.state, 'none');
   });
 
